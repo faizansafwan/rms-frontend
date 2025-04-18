@@ -1,8 +1,50 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+
+type Product = {
+    productId: string;
+    productName: string;
+    category: string;
+    totalStock: number;
+    costPrice: number;
+    sellingPrice: number;
+    total: number;
+};
 
 export default function ProductList(): JSX.Element {
+    const [productList, setProductList] = useState<Product[]>([]);
+
+    useEffect(() => {
+        const fetchProducts = async () => {
+            try {
+                const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/product/product-stock`, 
+                    {
+                        method: 'GET',
+                        headers: {
+                            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                            'Content-Type': 'application/json',
+                        },
+
+                    }
+                    
+                );
+
+                if (!response.ok) {
+                    throw new Error('Failed to fetch products');
+                }
+
+                const data = await response.json();
+                setProductList(data);
+
+            } catch (error) {
+                console.error('Error fetching products:', error);
+            }
+        };
+
+        fetchProducts();
+    }, []);
+
     return (
         <div className="m-5">
             <div className="mx-10">
@@ -10,55 +52,30 @@ export default function ProductList(): JSX.Element {
                     <thead className="space-y-4">
                         <tr className="h-12">
                             <th className="pr-4 text-left">
-                                <label htmlFor="customerName">Customer Name:</label>
+                                <label htmlFor="customerName">Product ID:</label>
                             </th>
                             <td>
                                 <input
                                     id="customerName"
                                     type="text"
-                                    placeholder="Enter Name"
+                                    placeholder="Enter ID"
                                     className="border border-black p-2 rounded w-full"
                                 />
                             </td>
 
                             <th className="px-4 text-left">
-                                <label htmlFor="customerId">Customer ID:</label>
+                                <label htmlFor="customerId">Product Name:</label>
                             </th>
                             <td>
                                 <input
                                     id="customerId"
                                     type="text"
-                                    placeholder="ID"
+                                    placeholder="Enter Name"
                                     className="border border-black p-2 rounded w-full"
                                 />
                             </td>
                         </tr>
 
-                        <tr className="h-12">
-                            <th className="pr-4 text-left">
-                                <label htmlFor="customerAddress">Customer Address:</label>
-                            </th>
-                            <td>
-                                <input
-                                    id="customerAddress"
-                                    type="text"
-                                    placeholder="Address"
-                                    className="border border-black p-2 rounded w-full"
-                                />
-                            </td>
-
-                            <th className="px-4 text-left">
-                                <label htmlFor="contactNumber">Contact Number:</label>
-                            </th>
-                            <td>
-                                <input
-                                    id="contactNumber"
-                                    type="text"
-                                    placeholder="Contact No."
-                                    className="border border-black p-2 rounded w-full"
-                                />
-                            </td>
-                        </tr>
 
                         <tr className="h-12">
                             <th className="text-left">
@@ -95,25 +112,17 @@ export default function ProductList(): JSX.Element {
                     </thead>
 
                     <tbody>
-                        <tr className="even:bg-gray-100">
-                            <td className="py-1 text-center">p108</td>
-                            <td className="py-1 text-center">Product1</td>
-                            <td className="py-1 text-center">Category1</td>
-                            <td className="py-1 text-center">30</td>
-                            <td className="py-1 text-center">400.00</td>
-                            <td className="py-1 text-center">500.00</td>
-                            <td className="py-1 text-center">12000.00</td>
-                        </tr>
-
-                        <tr className="even:bg-gray-100">
-                            <td className="py-1 text-center">p109</td>
-                            <td className="py-1 text-center">Product2</td>
-                            <td className="py-1 text-center">Category2</td>
-                            <td className="py-1 text-center">10</td>
-                            <td className="py-1 text-center">1000</td>
-                            <td className="py-1 text-center">1200</td>
-                            <td className="py-1 text-center">10000.00</td>
-                        </tr>
+                    {productList.map((product) => (
+                    <tr key={product.productId} className="even:bg-gray-100">
+                            <td className="py-1 text-center">P{product.productId}</td>
+                            <td className="py-1 text-center">{product.productName}</td>
+                            <td className="py-1 text-center">{product.category}</td>
+                            <td className="py-1 text-center">{product.totalStock}</td>
+                            <td className="py-1 text-center">{product.costPrice.toFixed(2)}</td>
+                            <td className="py-1 text-center">{product.sellingPrice.toFixed(2)}</td>
+                            <td className="py-1 text-center">{product.total.toFixed(2)}</td>
+                            </tr>
+                        ))}
                     </tbody>
                 </table>
             </div>

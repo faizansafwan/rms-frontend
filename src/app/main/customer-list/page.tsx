@@ -1,8 +1,47 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+
+type Customer = {
+  id: number;
+  customerName: string;
+  email: string;
+  phoneNumber: string;
+  address: string;
+  creditLimit: number;
+  openingBalance: number;
+};
 
 export default function CustomerList(): JSX.Element {
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchCustomers = async () => {
+      try {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/Customer/customer-list`, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
+          },
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          setCustomers(data);
+        } else {
+          alert(data.message || 'Failed to fetch customers');
+        }
+      } catch (error) {
+        console.error('Error fetching customers:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCustomers();
+  }, []);
+
   return (
     <div className="m-5">
       <div className="mx-10">
@@ -93,36 +132,37 @@ export default function CustomerList(): JSX.Element {
         <table className="w-full border-collapse">
           <thead className="border-b">
             <tr>
-              <th className="p-2 text-center">Customer ID</th>
-              <th className="p-2 text-center">Name</th>
-              <th className="p-2 text-center">Email</th>
-              <th className="p-2 text-center">Phone</th>
-              <th className="p-2 text-center">Address</th>
-              <th className="p-2 text-center">Credit Balance</th>
-              <th className="p-2 text-center">Last Bill</th>
+              <th className="p-2 text-left">Customer ID</th>
+              <th className="p-2 text-left">Name</th>
+              <th className="p-2 text-left">Email</th>
+              <th className="p-2 text-left">Phone</th>
+              <th className="p-2 text-left">Address</th>
+              <th className="p-2 text-right">Credit Balance</th>
+              <th className="p-2 text-right">Last Bill</th>
             </tr>
           </thead>
 
           <tbody>
-            <tr className="even:bg-gray-100">
-              <td className="py-1 text-center">c108</td>
-              <td className="py-1 text-center">Customer1</td>
-              <td className="py-1 text-center">customer1@gmail.com</td>
-              <td className="py-1 text-center">075342342</td>
-              <td className="py-1 text-center">G 23, Colombo road, Kandy</td>
-              <td className="py-1 text-right">15000.00</td>
-              <td className="py-1 text-right">7800.00</td>
-            </tr>
-
-            <tr className="even:bg-gray-100">
-              <td className="py-1 text-center">c109</td>
-              <td className="py-1 text-center">Customer2</td>
-              <td className="py-1 text-center">customer2@gmail.com</td>
-              <td className="py-1 text-center">0748563552</td>
-              <td className="py-1 text-center">G 23, Colombo road, Kandy</td>
-              <td className="py-1 text-right">37300.00</td>
-              <td className="py-1 text-right">13700.00</td>
-            </tr>
+            {loading ? (
+              <tr>
+                <td colSpan={7} className="text-center py-4">Loading...</td>
+              </tr>
+            ) : customers.length > 0 ? (
+              customers.map((customer) => (
+                <tr key={customer.id} className="even:bg-gray-100">
+                  <td className="py-1 px-2 text-left">{`c${customer.id}`}</td>
+                  <td className="py-1 px-2 text-left">{customer.customerName}</td>
+                  <td className="py-1 px-2 text-left">{customer.email}</td>
+                  <td className="py-1 px-2 text-left">{customer.phoneNumber}</td>
+                  <td className="py-1 text-left">{customer.address}</td>
+                  <td className="py-1 px-2 text-right">{customer.openingBalance.toFixed(2)}</td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan={7} className="text-center py-4">No customers found.</td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
