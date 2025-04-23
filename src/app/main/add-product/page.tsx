@@ -26,8 +26,8 @@ export default function AddProduct() {
     };
 
     const handleAddProduct = () => {
-        const { productName, description, category, supplier } = formData;
-        if (!productName || !description || !category || !supplier) {
+        const { productName, category, supplier } = formData;
+        if (!productName || !category || !supplier) {
             alert('Please fill in all fields!');
             return;
         }
