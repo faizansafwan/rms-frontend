@@ -335,8 +335,15 @@ export default function NewInvoice() {
   };
 
   if (loading) {
-    return <div className="m-5">Loading...</div>;
-  }
+    return (
+        <div className="m-5 flex items-center justify-center space-x-2">
+            <div className="w-4 h-4 rounded-full bg-brown animate-bounce"></div>
+            <div className="w-4 h-4 rounded-full bg-primary animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+            <div className="w-4 h-4 rounded-full bg-secondary animate-bounce" style={{ animationDelay: '0.4s' }}></div>
+            <span>Loading products...</span>
+        </div>
+    );
+}
 
   return (
     <div className="m-5">

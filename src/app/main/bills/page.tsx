@@ -34,7 +34,7 @@ export default function Bills() {
           invoiceDate: new Date(invoice.invoiceDate).toLocaleDateString(),
           total: invoice.total,
           customerName: invoice.customerName
-        })))
+        })));
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An unknown error occurred');
       } finally {
@@ -51,7 +51,14 @@ export default function Bills() {
   );
 
   if (loading) {
-    return <div className="m-5">Loading invoices...</div>;
+    return (
+      <div className="m-5 flex items-center justify-center space-x-2">
+        <div className="w-4 h-4 rounded-full bg-brown animate-bounce"></div>
+        <div className="w-4 h-4 rounded-full bg-primary animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+        <div className="w-4 h-4 rounded-full bg-secondary animate-bounce" style={{ animationDelay: '0.4s' }}></div>
+        <span>Loading invoices...</span>
+      </div>
+    );
   }
 
   if (error) {
@@ -62,9 +69,9 @@ export default function Bills() {
     <div className="m-5">
       <div className="mx-10">
         <table className="w-full border-collapse">
-          <thead className="space-y-4">
+          <thead className="space-y-1">
             <tr className="h-12">
-              <th className="pr-4 text-left">
+              <th className="pr-1 text-left">
                 <label>Search: </label>
               </th>
               <td colSpan={3}>
@@ -73,7 +80,7 @@ export default function Bills() {
                   placeholder="Search by Invoice ID or Customer Name"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="border border-black p-2 rounded w-full"
+                  className="border border-black p-2 rounded w-full focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-300"
                 />
               </td>
             </tr>
@@ -95,17 +102,23 @@ export default function Bills() {
 
           <tbody className="border-b">
             {filteredInvoices.length > 0 ? (
-              filteredInvoices.map((invoice) => (
-                <tr key={invoice.id} className="even:bg-gray-100 hover:bg-gray-50">
+              filteredInvoices.map((invoice, index) => (
+                <tr 
+                  key={invoice.id} 
+                  className="even:bg-gray-100 hover:bg-gray-50"
+                  style={{
+                    animation: `fadeIn 0.7s ease-out ${index * 0.1}s`,
+                    animationFillMode: 'both'
+                  }}
+                >
                   <td className="py-2 text-center">I{invoice.id.toString().padStart(3, '0')}</td>
                   <td className="py-2 text-center">{invoice.invoiceDate}</td>
                   <td className="py-2 text-center">{invoice.total.toFixed(2)}</td>
                   <td className="py-2 text-center">{invoice.customerName}</td>
                   <td className="py-2 text-center">
                     <button
-                      className="rounded bg-secondary transition ease-in-out duration-300 p-2 hover:bg-black hover:text-white"
+                      className="rounded bg-secondary transition ease-in-out duration-1000 p-2 hover:bg-black hover:text-white hover:scale-105"
                       onClick={() => {
-                        // Handle view action
                         console.log('View invoice:', invoice.id);
                       }}
                     >
@@ -123,7 +136,20 @@ export default function Bills() {
             )}
           </tbody>
         </table>
-      </div>  
+      </div>
+
+      <style jsx global>{`
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+            transform: translateY(10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+      `}</style>
     </div>
   );
 }

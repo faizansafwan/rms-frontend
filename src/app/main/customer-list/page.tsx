@@ -20,6 +20,7 @@ type Customer = {
 export default function CustomerList(): JSX.Element {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   // Filters
   const [filters, setFilters] = useState({
@@ -90,6 +91,7 @@ export default function CustomerList(): JSX.Element {
         setCustomers(customersWithInvoices);
       } catch (error) {
         console.error('Error fetching data:', error);
+        setError(error instanceof Error ? error.message : 'An unknown error occurred');
       } finally {
         setLoading(false);
       }
@@ -116,8 +118,47 @@ export default function CustomerList(): JSX.Element {
     );
   });
 
+  if (loading) {
+    return (
+      <div className="m-5 flex items-center justify-center space-x-2">
+        <div className="w-4 h-4 rounded-full bg-brown animate-bounce"></div>
+        <div className="w-4 h-4 rounded-full bg-primary animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+        <div className="w-4 h-4 rounded-full bg-secondary animate-bounce" style={{ animationDelay: '0.4s' }}></div>
+        <span>Loading customers...</span>
+      </div>
+    );
+  }
+
+  if (error) {
+    return <div className="m-5 text-red-500">Error: {error}</div>;
+  }
+
   return (
     <div className="m-5">
+      <style jsx global>{`
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+            transform: translateY(10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        .skeleton-row {
+          animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        @keyframes pulse {
+          0%, 100% {
+            opacity: 1;
+          }
+          50% {
+            opacity: 0.5;
+          }
+        }
+      `}</style>
+
       <div className="mx-10">
         <table className="w-full border-collapse">
           <thead>
@@ -132,7 +173,7 @@ export default function CustomerList(): JSX.Element {
                   value={filters.customerId}
                   onChange={(e) => handleFilterChange('customerId', e.target.value)}
                   placeholder="c213"
-                  className="border border-black p-2 rounded w-full"
+                  className="border border-black p-2 rounded w-full focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-300"
                 />
               </td>
 
@@ -146,7 +187,7 @@ export default function CustomerList(): JSX.Element {
                   value={filters.customerName}
                   onChange={(e) => handleFilterChange('customerName', e.target.value)}
                   placeholder="smith"
-                  className="border border-black p-2 rounded w-full"
+                  className="border border-black p-2 rounded w-full focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-300"
                 />
               </td>
             </tr>
@@ -162,7 +203,7 @@ export default function CustomerList(): JSX.Element {
                   value={filters.phone}
                   onChange={(e) => handleFilterChange('phone', e.target.value)}
                   placeholder="0711234567"
-                  className="border border-black p-2 rounded w-full"
+                  className="border border-black p-2 rounded w-full focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-300"
                 />
               </td>
 
@@ -176,7 +217,7 @@ export default function CustomerList(): JSX.Element {
                   value={filters.email}
                   onChange={(e) => handleFilterChange('email', e.target.value)}
                   placeholder="abc@gmail.com"
-                  className="border border-black p-2 rounded w-full"
+                  className="border border-black p-2 rounded w-full focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-300"
                 />
               </td>
             </tr>
@@ -192,7 +233,7 @@ export default function CustomerList(): JSX.Element {
                   value={filters.creditBalance}
                   onChange={(e) => handleFilterChange('creditBalance', e.target.value)}
                   placeholder="15000.00"
-                  className="border border-black p-2 rounded w-full"
+                  className="border border-black p-2 rounded w-full focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-300"
                 />
               </td>
 
@@ -206,7 +247,7 @@ export default function CustomerList(): JSX.Element {
                   value={filters.lastBill}
                   onChange={(e) => handleFilterChange('lastBill', e.target.value)}
                   placeholder="6000.00"
-                  className="border border-black p-2 rounded w-full"
+                  className="border border-black p-2 rounded w-full focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-300"
                 />
               </td>
             </tr>
@@ -229,22 +270,28 @@ export default function CustomerList(): JSX.Element {
           </thead>
 
           <tbody>
-            {loading ? (
-              <tr>
-                <td colSpan={7} className="text-center py-4">Loading...</td>
-              </tr>
-            ) : filteredCustomers.length > 0 ? (
-              filteredCustomers.map((customer) => (
-                <tr key={customer.id} className="even:bg-gray-100">
-                  <td className="py-1 px-2 text-left">{`c${customer.id}`}</td>
-                  <td className="py-1 px-2 text-left">{customer.customerName}</td>
-                  <td className="py-1 px-2 text-left">{customer.email}</td>
-                  <td className="py-1 px-2 text-left">{customer.phoneNumber}</td>
-                  <td className="py-1 text-left">{customer.address}</td>
-                  <td className="py-1 px-2 text-right">{customer.openingBalance.toFixed(2)}</td>
-                  <td className="py-1 px-2 text-right">
+            {filteredCustomers.length > 0 ? (
+              filteredCustomers.map((customer, index) => (
+                <tr 
+                  key={customer.id} 
+                  className="even:bg-gray-100 hover:bg-gray-50"
+                  style={{
+                    animation: `fadeIn 0.5s ease-out ${index * 0.1}s`,
+                    animationFillMode: 'both'
+                  }}
+                >
+                  <td className="py-2 px-2 text-left">{`c${customer.id}`}</td>
+                  <td className="py-2 px-2 text-left">{customer.customerName}</td>
+                  <td className="py-2 px-2 text-left">{customer.email}</td>
+                  <td className="py-2 px-2 text-left">{customer.phoneNumber}</td>
+                  <td className="py-2 px-2 text-left">{customer.address}</td>
+                  <td className="py-2 px-2 text-right">{customer.openingBalance.toFixed(2)}</td>
+                  <td className="py-2 px-2 text-right">
                     {customer.lastInvoice ? (
-                      <span title={`Invoice #${customer.lastInvoice.id} (${new Date(customer.lastInvoice.invoiceDate).toLocaleDateString()})`}>
+                      <span 
+                        className="inline-block transition-all hover:scale-105"
+                        title={`Invoice #${customer.lastInvoice.id} (${new Date(customer.lastInvoice.invoiceDate).toLocaleDateString()})`}
+                      >
                         {customer.lastInvoice.total.toFixed(2)}
                       </span>
                     ) : (
@@ -255,7 +302,16 @@ export default function CustomerList(): JSX.Element {
               ))
             ) : (
               <tr>
-                <td colSpan={7} className="text-center py-4">No customers match your filters.</td>
+                <td 
+                  colSpan={7} 
+                  className="text-center py-4 text-gray-500"
+                  style={{
+                    animation: 'fadeIn 0.5s ease-out',
+                    animationFillMode: 'both'
+                  }}
+                >
+                  No customers match your filters.
+                </td>
               </tr>
             )}
           </tbody>
