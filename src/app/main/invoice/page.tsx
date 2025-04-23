@@ -4,35 +4,32 @@ import React, { useState, useEffect } from 'react';
 
 type ProductItem = {
   id: number;
-  productId: string;
+  productId: number;
   productName: string;
   quantity: number;
-  unitPrice: number;
+  sellingPrice: number;
   discount: number;
   total: number;
 };
 
 type CustomerInfo = {
   customerId: number;
-  name: string;
-  address: string;
-  contactNumber: string;
+  name?: string;
+  address?: string;
+  contactNumber?: string;
 };
 
 export default function NewInvoice() {
   const [customer, setCustomer] = useState<CustomerInfo>({
     customerId: 0,
-    name: '',
-    address: '',
-    contactNumber: ''
   });
   
   const [products, setProducts] = useState<ProductItem[]>([]);
   const [newProduct, setNewProduct] = useState<Omit<ProductItem, 'id'>>({
-    productId: '',
+    productId: 0,
     productName: '',
     quantity: 0,
-    unitPrice: 0,
+    sellingPrice: 0,
     discount: 0,
     total: 0
   });
@@ -55,7 +52,7 @@ export default function NewInvoice() {
       return;
     }
 
-    const productTotal = (newProduct.quantity * newProduct.unitPrice) - newProduct.discount;
+    const productTotal = (newProduct.quantity * newProduct.sellingPrice) - newProduct.discount;
     
     setProducts([...products, {
       ...newProduct,
@@ -65,10 +62,10 @@ export default function NewInvoice() {
 
     // Reset new product form
     setNewProduct({
-      productId: '',
+      productId: 0,
       productName: '',
       quantity: 0,
-      unitPrice: 0,
+      sellingPrice: 0,
       discount: 0,
       total: 0
     });
@@ -88,17 +85,14 @@ export default function NewInvoice() {
     try {
       const invoiceData = {
         customerId: customer.customerId,
-        products: products.map(product => ({
-          ProductId: parseInt(product.productId),
-          Quantity: product.quantity,
-          SellingPrice: product.unitPrice,
-          Discount: product.discount,
-          SubTotal: product.quantity * product.unitPrice,
-          Total: product.total,
-          Paid: paid,
-          Balance: balance
+        paid: paid,
+        invoiceProducts: products.map(product => ({
+          productId: product.productId,
+          quantity: product.quantity,
+          sellingPrice: product.sellingPrice,
+          discount: product.discount
         })),
-        stocks: [] // Add stock items if needed
+        invoiceStocks: [] // Add stock items if needed
       };
 
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/Invoice`, {
@@ -115,13 +109,18 @@ export default function NewInvoice() {
         alert('Invoice created successfully!');
         // Reset form
         setCustomer({
-          customerId: 0,
-          name: '',
-          address: '',
-          contactNumber: ''
+          customerId: 0
         });
         setProducts([]);
         setPaid(0);
+        setNewProduct({
+          productId: 0,
+          productName: '',
+          quantity: 0,
+          sellingPrice: 0,
+          discount: 0,
+          total: 0
+        });
       } else {
         const error = await response.json();
         alert(error.message || 'Failed to create invoice');
@@ -145,7 +144,7 @@ export default function NewInvoice() {
                 <input
                   type="text"
                   placeholder="Enter Name"
-                  value={customer.name}
+                  value={customer.name || ''}
                   onChange={(e) => setCustomer({...customer, name: e.target.value})}
                   className="border border-black p-2 rounded w-full"
                 />
@@ -173,7 +172,7 @@ export default function NewInvoice() {
                 <input
                   type="text"
                   placeholder="Address"
-                  value={customer.address}
+                  value={customer.address || ''}
                   onChange={(e) => setCustomer({...customer, address: e.target.value})}
                   className="border border-black p-2 rounded w-full"
                 />
@@ -186,7 +185,7 @@ export default function NewInvoice() {
                 <input
                   type="text"
                   placeholder="Contact No."
-                  value={customer.contactNumber}
+                  value={customer.contactNumber || ''}
                   onChange={(e) => setCustomer({...customer, contactNumber: e.target.value})}
                   className="border border-black p-2 rounded w-full"
                 />
@@ -223,7 +222,7 @@ export default function NewInvoice() {
                 <td className="py-1 text-center">{product.productId}</td>
                 <td className="py-1 text-center">{product.productName}</td>
                 <td className="py-1 text-center">{product.quantity}</td>
-                <td className="py-1 text-center">{product.unitPrice.toFixed(2)}</td>
+                <td className="py-1 text-center">{product.sellingPrice.toFixed(2)}</td>
                 <td className="py-1 text-center">{product.discount.toFixed(2)}</td>
                 <td className="py-1 text-center">{product.total.toFixed(2)}</td>
               </tr>
@@ -235,9 +234,9 @@ export default function NewInvoice() {
               </td>
               <td className="py-1 text-center">
                 <input
-                  type="text"
-                  value={newProduct.productId}
-                  onChange={(e) => setNewProduct({...newProduct, productId: e.target.value})}
+                  type="number"
+                  value={newProduct.productId || ''}
+                  onChange={(e) => setNewProduct({...newProduct, productId: parseInt(e.target.value) || 0})}
                   className="w-20 p-1 border rounded"
                   placeholder="Product ID"
                 />
@@ -263,8 +262,8 @@ export default function NewInvoice() {
               <td className="py-1 text-center">
                 <input
                   type="number"
-                  value={newProduct.unitPrice || ''}
-                  onChange={(e) => setNewProduct({...newProduct, unitPrice: parseFloat(e.target.value) || 0})}
+                  value={newProduct.sellingPrice || ''}
+                  onChange={(e) => setNewProduct({...newProduct, sellingPrice: parseFloat(e.target.value) || 0})}
                   className="w-20 p-1 border rounded"
                   placeholder="Price"
                 />
