@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, KeyboardEvent, useRef, useEffect, JSX } from 'react';
+import React, { useState, KeyboardEvent, useRef, useEffect, JSX, ChangeEvent } from 'react';
 
 type Product = {
     productId: number;
@@ -37,6 +37,8 @@ export default function AddStock(): JSX.Element {
     const [showSuggestions, setShowSuggestions] = useState(false);
     const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(-1);
     const [fetchingStock, setFetchingStock] = useState(false);
+    const [editingIndex, setEditingIndex] = useState<number | null>(null);
+    const [editFormData, setEditFormData] = useState<Product | null>(null);
 
     // Create refs for each input
     const productIdRef = useRef<HTMLInputElement>(null);
@@ -78,6 +80,37 @@ export default function AddStock(): JSX.Element {
         
         fetchProducts();
     }, []);
+
+    const handleRowDoubleClick = (index: number) => {
+        setEditingIndex(index);
+        setEditFormData(stockList[index]);
+    };
+    
+    const handleEditChange = (e: ChangeEvent<HTMLInputElement>) => {
+        const { name, value } = e.target;
+        setEditFormData(prev => ({
+            ...prev!,
+            [name]: name === 'productId' || name === 'stockAdjustment' 
+                ? parseInt(value) || 0
+                : parseFloat(value) || 0
+        }));
+    };
+
+
+    const saveEdit = () => {
+        if (editingIndex !== null && editFormData) {
+            const updatedList = [...stockList];
+            updatedList[editingIndex] = editFormData;
+            setStockList(updatedList);
+            cancelEdit();
+        }
+    };
+    
+    const cancelEdit = () => {
+        setEditingIndex(null);
+        setEditFormData(null);
+    };
+
 
     const handleProductInputChange = (value: string) => {
         setProductId(value);
@@ -270,6 +303,9 @@ export default function AddStock(): JSX.Element {
             if (response.ok) {
                 alert('Stock added successfully!');
                 setStockList([]);
+                setCurrentStock(0);
+                
+            
             } else {
                 alert(data.message || 'Failed to add stock');
             }
@@ -331,22 +367,96 @@ export default function AddStock(): JSX.Element {
                     <tbody>
                         {/* List of added products */}
                         {stockList.map((item, index) => (
-                            <tr 
-                                key={index} 
-                                className="border-b text-sm text-center hover:bg-gray-50 transition-colors"
-                                style={{
-                                    animation: `fadeIn 0.3s ease-out ${index * 0.05}s`,
-                                    animationFillMode: 'both'
-                                }}
-                            >
-                                <td className='py-2'>{item.productId}</td>
-                                <td className='py-2'>{item.costPrice.toFixed(2)}</td>
-                                <td className='py-2'>{item.sellingPrice.toFixed(2)}</td>
-                                <td className='py-2'>{item.currentStock}</td>  {/* Use item's currentStock */}
-                                <td className='py-2'>{item.stockAdjustment}</td>
-                                <td className='py-2'>{item.currentStock + item.stockAdjustment}</td>
-                                <td className='py-2'>{(item.costPrice * item.stockAdjustment).toFixed(2)}</td>
-                            </tr>
+                            editingIndex === index ? (
+                                <tr 
+                                    key={index} 
+                                    className="border-b text-sm text-center hover:bg-gray-50 transition-colors bg-blue-50"
+                                >
+                                    <td className='py-2'>
+                                        <input
+                                            type="text"
+                                            name="productId"
+                                            value={editFormData?.productId || ''}
+                                            onChange={handleEditChange}
+                                            className="w-20 p-1 border rounded text-center"
+                                        />
+                                    </td>
+                                    <td className='py-2'>
+                                        <input
+                                            type="text"
+                                            name="costPrice"
+                                            value={editFormData?.costPrice || ''}
+                                            onChange={handleEditChange}
+                                            className="w-20 p-1 border rounded text-center"
+                                        />
+                                    </td>
+                                    <td className='py-2'>
+                                        <input
+                                            type="text"
+                                            name="sellingPrice"
+                                            value={editFormData?.sellingPrice || ''}
+                                            onChange={handleEditChange}
+                                            className="w-20 p-1 border rounded text-center"
+                                        />
+                                    </td>
+                                    <td className='py-2'>
+                                        <input
+                                            type="text"
+                                            name="currentStock"
+                                            value={editFormData?.currentStock || ''}
+                                            onChange={handleEditChange}
+                                            className="w-20 p-1 border rounded text-center"
+                                        />
+                                    </td>
+                                    <td className='py-2'>
+                                        <input
+                                            type="text"
+                                            name="stockAdjustment"
+                                            value={editFormData?.stockAdjustment || ''}
+                                            onChange={handleEditChange}
+                                            className="w-20 p-1 border rounded text-center"
+                                        />
+                                    </td>
+                                    <td className='py-2'>
+                                        {(editFormData?.currentStock || 0) + (editFormData?.stockAdjustment || 0)}
+                                    </td>
+                                    <td className='py-2'>
+                                        {((editFormData?.costPrice || 0) * (editFormData?.stockAdjustment || 0)).toFixed(2)}
+                                    </td>
+                                    <td className='py-2 flex justify-center space-x-2'>
+                                        <button 
+                                            onClick={saveEdit}
+                                            className="p-1 px-2 bg-secondary text-white rounded hover:bg-black"
+                                        >
+                                            Save
+                                        </button>
+                                        <button 
+                                            onClick={cancelEdit}
+                                            className="p-1 px-2 bg-brown text-white rounded hover:bg-black"
+                                        >
+                                            Cancel
+                                        </button>
+                                    </td>
+                                </tr>
+                            ) : (
+                                <tr 
+                                    key={index} 
+                                    className="border-b text-sm text-center hover:bg-gray-50 transition-colors"
+                                    style={{
+                                        animation: `fadeIn 0.3s ease-out ${index * 0.05}s`,
+                                        animationFillMode: 'both'
+                                    }}
+                                    onDoubleClick={() => handleRowDoubleClick(index)}
+                                >
+                                    <td className='py-2'>{item.productId}</td>
+                                    <td className='py-2'>{item.costPrice.toFixed(2)}</td>
+                                    <td className='py-2'>{item.sellingPrice.toFixed(2)}</td>
+                                    <td className='py-2'>{item.currentStock}</td>
+                                    <td className='py-2'>{item.stockAdjustment}</td>
+                                    <td className='py-2'>{item.currentStock + item.stockAdjustment}</td>
+                                    <td className='py-2'>{(item.costPrice * item.stockAdjustment).toFixed(2)}</td>
+                                </tr>
+                            )
                         ))}
 
                         {/* Input Row */}

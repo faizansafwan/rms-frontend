@@ -61,6 +61,11 @@ export default function NewInvoice() {
   const [showProductSuggestions, setShowProductSuggestions] = useState(false);
   const [activeProductSuggestionIndex, setActiveProductSuggestionIndex] = useState(-1);
   const productSuggestionsRef = useRef<HTMLUListElement>(null);
+  const [editingProduct, setEditingProduct] = useState<ProductItem | null>(null);
+  const [showProductActions, setShowProductActions] = useState(false);
+  const [actionPosition, setActionPosition] = useState({ top: 0, left: 0 });
+  const actionsRef = useRef<HTMLDivElement>(null);
+
 
   // Fetch customers on component mount
   useEffect(() => {
@@ -84,6 +89,21 @@ export default function NewInvoice() {
     };
 
     fetchCustomers();
+  }, []);
+
+
+  // Add this effect to handle clicks outside the actions menu
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (actionsRef.current && !actionsRef.current.contains(event.target as Node)) {
+        setShowProductActions(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
   }, []);
 
   useEffect(() => {
@@ -143,6 +163,45 @@ export default function NewInvoice() {
       document.getElementById('productIdInput')?.focus();
     } else if (e.key === 'Escape') {
       setShowSuggestions(false);
+    }
+  };
+
+
+  const handleProductDoubleClick = (product: ProductItem, event: React.MouseEvent) => {
+    setEditingProduct(product);
+    setActionPosition({
+      top: event.clientY,
+      left: event.clientX
+    });
+    setShowProductActions(true);
+  };
+
+  const handleDeleteProduct = () => {
+    if (editingProduct) {
+      setProducts(products.filter(p => p.id !== editingProduct.id));
+      setShowProductActions(false);
+    }
+  };
+
+  const handleModifyProduct = () => {
+    if (editingProduct) {
+      // Remove the product from the list
+      setProducts(products.filter(p => p.id !== editingProduct.id));
+      
+      // Set the new product form with the editing product's values
+      setNewProduct({
+        productId: editingProduct.productId,
+        productName: editingProduct.productName,
+        quantity: editingProduct.quantity,
+        sellingPrice: editingProduct.sellingPrice,
+        discount: editingProduct.discount,
+        total: editingProduct.total
+      });
+      
+      setShowProductActions(false);
+      
+      // Focus on the quantity field for quick editing
+      document.getElementById('quantityInput')?.focus();
     }
   };
 
@@ -494,7 +553,11 @@ export default function NewInvoice() {
 
           <tbody className="border-b">
             {products.map((product, index) => (
-              <tr key={product.id} className="even:bg-gray-100">
+              <tr 
+                key={product.id} 
+                className="even:bg-gray-100 hover:bg-gray-200 cursor-pointer"
+                onDoubleClick={(e) => handleProductDoubleClick(product, e)}
+              >
                 <td className="py-1 text-center">{index + 1}</td>
                 <td className="py-1 text-center">{product.productId}</td>
                 <td className="py-1 text-center">{product.productName}</td>
@@ -514,7 +577,7 @@ export default function NewInvoice() {
                 <div className="relative">
                   <input
                     id="productIdInput"
-                    type="number"
+                    
                     value={newProduct.productId || ''}
                     onChange={(e) => {
                       const inputValue = e.target.value;
@@ -630,6 +693,32 @@ export default function NewInvoice() {
               
             </tr>
           </tbody>
+
+
+          {/* Add this context menu for product actions */}
+          {showProductActions && (
+            <div
+              ref={actionsRef}
+              className="fixed bg-white shadow-lg rounded border border-gray-300 z-50 py-1"
+              style={{
+                top: `${actionPosition.top}px`,
+                left: `${actionPosition.left}px`,
+              }}
+            >
+              <button
+                onClick={handleModifyProduct}
+                className="block w-full text-left px-4 py-2 hover:bg-gray-100"
+              >
+                Modify Product
+              </button>
+              <button
+                onClick={handleDeleteProduct}
+                className="block w-full text-left px-4 py-2 hover:bg-gray-100 text-red-600"
+              >
+                Delete Product
+              </button>
+            </div>
+          )}
         </table>
       </div>
 
@@ -642,7 +731,7 @@ export default function NewInvoice() {
         <div className="flex items-center justify-between p-1">
           <p>Paid</p>
           <input
-            type="number"
+            
             value={paid || ''}
             onChange={(e) => setPaid(parseFloat(e.target.value) || 0)}
             onKeyDown={(e) => {
