@@ -20,6 +20,10 @@ export default function AddProduct() {
         supplier: '',
     });
 
+    const [selectedProductIndex, setSelectedProductIndex] = useState<number | null>(null);
+    const [showModal, setShowModal] = useState(false);
+
+
     useEffect(() => {
         // Simulate data loading
         const timer = setTimeout(() => {
@@ -32,6 +36,28 @@ export default function AddProduct() {
         const { name, value } = e.target;
         setFormData({ ...formData, [name]: value });
     };
+
+    const handleView = (index: number) => {
+        setSelectedProductIndex(index);
+        setShowModal(true);
+    };
+
+    const handleModify = () => {
+        if (selectedProductIndex !== null) {
+            const productToEdit = productList[selectedProductIndex];
+            setFormData(productToEdit);
+            setShowModal(false);
+        }
+    };
+    
+    const handleDelete = () => {
+        if (selectedProductIndex !== null) {
+            const updatedList = productList.filter((_, idx) => idx !== selectedProductIndex);
+            setProductList(updatedList);
+            setShowModal(false);
+        }
+    };
+    
 
     const handleAddProduct = () => {
         const { productName, category, supplier } = formData;
@@ -217,7 +243,9 @@ export default function AddProduct() {
                                 <td className="py-2 text-center">{product.category}</td>
                                 <td className="py-2 text-center">{product.supplier}</td>
                                 <td className="py-2 text-center">
-                                    <button className="rounded text-brown border border-brown transition ease-in-out duration-300 p-1 px-2 hover:bg-primary hover:border-primary hover:text-white">
+                                    <button 
+                                    onClick={() => handleView(index)}
+                                    className="rounded text-brown border border-brown transition ease-in-out duration-300 p-1 px-2 hover:bg-primary hover:border-primary hover:text-white">
                                         View
                                     </button>
                                 </td>
@@ -251,6 +279,31 @@ export default function AddProduct() {
                     )}
                 </button>
             </div>
+
+            {showModal && selectedProductIndex !== null && (
+                <div className="fixed inset-0  bg-opacity-90 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-xl shadow-lg p-4 w-[90%] max-w-sm animate-fadeIn">
+                        <h2 className="text-xl font-semibold mb-4 text-center">Product Options</h2>
+                        <p className="mb-2"><strong>Name:</strong> {productList[selectedProductIndex].productName}</p>
+                        <p className="mb-2"><strong>Description:</strong> {productList[selectedProductIndex].description}</p>
+                        <p className="mb-2"><strong>Category:</strong> {productList[selectedProductIndex].category}</p>
+                        <p className="mb-4"><strong>Supplier:</strong> {productList[selectedProductIndex].supplier}</p>
+
+                        <div className="flex justify-between gap-4">
+                            <button onClick={handleModify} className="flex-1 bg-secondary hover:opacity-80 text-white p-2 rounded">Modify</button>
+                            <button onClick={handleDelete} className="flex-1 bg-brown hover:opacity-80 text-white p-2 rounded">Delete</button>
+                        </div>
+
+                        <button
+                            onClick={() => setShowModal(false)}
+                            className="mt-4 w-full bg-gray-300 hover:bg-gray-400 text-black p-2 rounded"
+                        >
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+            )}
+
         </div>
     );
 }
