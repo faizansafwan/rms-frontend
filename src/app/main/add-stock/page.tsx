@@ -1,12 +1,26 @@
 'use client';
 
-import React, { useState, KeyboardEvent, useRef, useEffect } from 'react';
+import React, { useState, KeyboardEvent, useRef, useEffect, JSX } from 'react';
 
 type Product = {
     productId: number;
     costPrice: number;
     sellingPrice: number;
     stockAdjustment: number;
+    currentStock: number;  // Add this field
+};
+
+type ProductSuggestion = {
+    id: number;  // Matches your Product model's Id
+    productName: string;  // Matches your Product model's ProductName
+    
+};
+
+// Add a type for the stock data we'll fetch
+type StockData = {
+    costPrice: number;
+    sellingPrice: number;
+    newStock: number;
 };
 
 export default function AddStock(): JSX.Element {
@@ -18,12 +32,153 @@ export default function AddStock(): JSX.Element {
     const [stockList, setStockList] = useState<Product[]>([]);
     const [loading, setLoading] = useState(false);
     const [submitting, setSubmitting] = useState(false);
+    const [products, setProducts] = useState<ProductSuggestion[]>([]);
+    const [filteredProducts, setFilteredProducts] = useState<ProductSuggestion[]>([]);
+    const [showSuggestions, setShowSuggestions] = useState(false);
+    const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(-1);
+    const [fetchingStock, setFetchingStock] = useState(false);
 
     // Create refs for each input
     const productIdRef = useRef<HTMLInputElement>(null);
     const costPriceRef = useRef<HTMLInputElement>(null);
     const sellingPriceRef = useRef<HTMLInputElement>(null);
     const stockAdjustmentRef = useRef<HTMLInputElement>(null);
+    const suggestionsRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        // Fetch products when component mounts
+        const fetchProducts = async () => {
+            try {
+                const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/Product/product-list`, {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    if (Array.isArray(data)) {
+                        // Transform the data to match our ProductSuggestion type
+                        const formattedProducts = data.map(product => ({
+                            id: product.id,
+                            productName: product.productName,
+                            // Add other fields you might need
+                        }));
+                        setProducts(formattedProducts);
+                    } else {
+                        console.error('Unexpected API response format');
+                        setProducts([]);
+                    }
+                }
+            } catch (error) {
+                console.error('Error fetching products:', error);
+                setProducts([]);
+            }
+        };
+        
+        fetchProducts();
+    }, []);
+
+    const handleProductInputChange = (value: string) => {
+        setProductId(value);
+        
+        if (value.length > 0 && products.length > 0) {
+            const searchTerm = value.toLowerCase();
+            const filtered = products.filter(p => 
+                p.id.toString().includes(searchTerm) || 
+                p.productName.toLowerCase().includes(searchTerm)
+            );
+            setFilteredProducts(filtered);
+            setShowSuggestions(filtered.length > 0);
+        } else {
+            setShowSuggestions(false);
+        }
+    };
+
+    const handleProductKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+        if (showSuggestions) {
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                setActiveSuggestionIndex(prev => 
+                    Math.min(prev + 1, filteredProducts.length - 1)
+                );
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                setActiveSuggestionIndex(prev => Math.max(prev - 1, -1));
+            } else if (e.key === 'Enter') {
+                e.preventDefault();
+                if (activeSuggestionIndex >= 0 && activeSuggestionIndex < filteredProducts.length) {
+                    selectProduct(filteredProducts[activeSuggestionIndex]);
+                }
+            } else if (e.key === 'Escape') {
+                setShowSuggestions(false);
+            }
+        } else {
+            if (e.key === 'Enter') {
+                handleKeyPress(e, 'productId');
+            }
+        }
+    };
+
+    const selectProduct = async (product: ProductSuggestion) => {
+
+        setFetchingStock(true);
+        try {
+            // Fetch stock data for the selected product
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/Stock/stock/${product.id}`, {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                }
+            });
+    
+            if (response.ok) {
+                const stockData = await response.json();
+                if (stockData && stockData.length > 0) {
+                    // Get the most recent stock entry (assuming the API returns an array sorted by date)
+                    const latestStock = stockData[0];
+                    
+                    // Update the form fields
+                    setProductId(product.id.toString());
+                    setCostPrice(latestStock.costPrice.toString());
+                    setSellingPrice(latestStock.sellingPrice.toString());
+                    setCurrentStock(latestStock.newStock);
+                } else {
+                    // No stock data found, set defaults
+                    setProductId(product.id.toString());
+                    setCostPrice('0');
+                    setSellingPrice('0');
+                    setCurrentStock(0);
+                }
+            } else {
+                console.error('Failed to fetch stock data');
+                // Fallback to just setting the product ID
+                setProductId(product.id.toString());
+            }
+        } catch (error) {
+            console.error('Error fetching stock data:', error);
+            alert('Failed to load product stock information');
+            setProductId(product.id.toString());
+
+        } finally {
+            setShowSuggestions(false);
+            setActiveSuggestionIndex(-1);
+            setFetchingStock(false);
+            costPriceRef.current?.focus();
+        }
+    };
+
+    const handleClickOutside = (e: MouseEvent) => {
+        if (suggestionsRef.current && !suggestionsRef.current.contains(e.target as Node)) {
+            setShowSuggestions(false);
+        }
+    };
+
+    useEffect(() => {
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, []);
 
     const newInventory = currentStock + Number(stockAdjustment || 0);
     const total = Number(costPrice || 0) * Number(stockAdjustment || 0);
@@ -72,17 +227,18 @@ export default function AddStock(): JSX.Element {
             alert('Please fill all fields before adding');
             return;
         }
-
+    
         const newItem: Product = {
             productId: parseInt(productId),
             costPrice: parseFloat(costPrice),
             sellingPrice: parseFloat(sellingPrice),
             stockAdjustment: parseInt(stockAdjustment),
+            currentStock: currentStock,  // Store the current stock with the product
         };
-
+    
         setStockList([...stockList, newItem]);
-
-        // Clear input fields after adding
+    
+        // Clear input fields after adding (but keep currentStock)
         setProductId('');
         setCostPrice('');
         setSellingPrice('');
@@ -186,25 +342,62 @@ export default function AddStock(): JSX.Element {
                                 <td className='py-2'>{item.productId}</td>
                                 <td className='py-2'>{item.costPrice.toFixed(2)}</td>
                                 <td className='py-2'>{item.sellingPrice.toFixed(2)}</td>
-                                <td className='py-2'>{currentStock}</td>
+                                <td className='py-2'>{item.currentStock}</td>  {/* Use item's currentStock */}
                                 <td className='py-2'>{item.stockAdjustment}</td>
-                                <td className='py-2'>{currentStock + item.stockAdjustment}</td>
+                                <td className='py-2'>{item.currentStock + item.stockAdjustment}</td>
                                 <td className='py-2'>{(item.costPrice * item.stockAdjustment).toFixed(2)}</td>
                             </tr>
                         ))}
 
                         {/* Input Row */}
                         <tr className="border-b">
-                            <td className="py-2 text-center">
-                                <input
-                                    ref={productIdRef}
-                                    type="text"
-                                    value={productId}
-                                    onChange={(e) => setProductId(e.target.value)}
-                                    onKeyDown={(e) => handleKeyPress(e, 'productId')}
-                                    className="w-20 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
-                                />
+                        <td className="py-2 text-center relative" style={{ height: 'auto' }}>
+                        <div className="relative" ref={suggestionsRef}>
+                        <input
+                            ref={productIdRef}
+                            type="text"
+                            value={productId}
+                            onChange={(e) => handleProductInputChange(e.target.value)}
+                            onKeyDown={handleProductKeyDown}
+                            onFocus={() => {
+                                if (productId && filteredProducts.length > 0) {
+                                    setShowSuggestions(true);
+                                }
+                            }}
+                            className="w-40 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                            placeholder={fetchingStock ? "Loading..." : "ID or Name"}
+                            disabled={fetchingStock}/>
+            
+                                {showSuggestions && filteredProducts.length > 0 && (
+                                    <div 
+                                        className="absolute z-50 mt-1 left-0 right-0 bg-white border border-gray-300 rounded shadow-lg"
+                                        style={{
+                                            maxHeight: '200px',
+                                            overflowY: 'auto',
+                                            top: '100%',
+                                            transform: 'translateY(4px)'
+                                        }}>
+                                        <ul>
+                                            {filteredProducts.map((product, index) => (
+                                                <li
+                                                    key={product.id}
+                                                    className={`p-2 cursor-pointer hover:bg-gray-100 ${
+                                                        index === activeSuggestionIndex ? 'bg-gray-200' : ''
+                                                    }`}
+                                                    onClick={() => selectProduct(product)}
+                                                    onMouseEnter={() => setActiveSuggestionIndex(index)}>
+                                                    <div className="flex justify-between">
+                                                        <span className="font-medium">{product.id}</span>
+                                                        <span>{product.productName}</span>
+                                                    </div>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                )}
+                                </div>
                             </td>
+
                             <td className="py-2 text-center">
                                 <input
                                     ref={costPriceRef}
@@ -247,7 +440,7 @@ export default function AddStock(): JSX.Element {
                                 <input
                                     type="text"
                                     className="w-20 p-2 border rounded bg-gray-100"
-                                    value={newInventory}
+                                    value={currentStock + Number(stockAdjustment || 0)}
                                     disabled
                                 />
                             </td>
@@ -257,11 +450,11 @@ export default function AddStock(): JSX.Element {
                 </table>
             </div>
 
-            <div className="flex gap-4 m-10">
+            <div className="flex gap-4 m-10 z-0">
                 <button 
                     onClick={handleSubmit}
                     disabled={submitting}
-                    className={`p-3 rounded transition-all duration-300 flex items-center justify-center min-w-32
+                    className={`p-2 rounded transition-all duration-300 flex items-center justify-center min-w-32
                         ${submitting 
                             ? 'bg-gray-400 cursor-not-allowed' 
                             : 'bg-black text-white hover:bg-gray-800 hover:shadow-md'}
