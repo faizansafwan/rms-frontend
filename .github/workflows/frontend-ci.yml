@@ -3,11 +3,11 @@ name: Frontend CI
 on: 
     push:
         paths:
-            - 'frontend/retail-management-next/**'
+            - '**'
     
     pull_request:
         paths:
-            - 'frontend/retail-management-next/**'
+            - '**'
 
 jobs:
     build-frontend:
@@ -23,12 +23,8 @@ jobs:
                   node-version: '18'
 
             - name: install dependencies
-              run: |
-                  cd frontend/retail-management-next
-                  npm ci
+              run: npm ci
 
             - name: Build
-              run: |
-                  cd frontend/retail-management-next
-                  npm run build
+              run:  npm run build
 
