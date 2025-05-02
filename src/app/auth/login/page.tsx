@@ -2,19 +2,37 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { jwtDecode } from 'jwt-decode';
+
+interface JwtPayload {
+  exp: number,
+}
 
 const LoginPage = () => {
   const router = useRouter();
   const [formData, setFormData] = useState({ username: '', password: '' });
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
 
   useEffect(() => {
     // Check for token in localStorage on component mount
     const token = localStorage.getItem('token');
 
     if (token) {
-      // Optional: You could also validate the token by calling an endpoint if needed
-      router.push('/main');
+      try {
+        const decoded = jwtDecode<JwtPayload>(token);
+        const currentTime = Date.now() / 1000; // in seconds
+  
+        if (decoded.exp > currentTime) {
+          router.push('/main');
+        } else {
+          localStorage.removeItem('token'); // Optional: remove expired token
+        }
+      } catch (err) {
+        console.error('Invalid token', err);
+        localStorage.removeItem('token'); // Optional: clean up if token is malformed
+      }
     }
   }, [router]);
 
@@ -25,21 +43,19 @@ const LoginPage = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-
+    setLoading(true);
+  
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/Shop/login`, { // Replace port with your .NET backend port
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/Shop/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
       });
-
+  
       const data = await res.json();
-
+  
       if (res.ok) {
-        // Store the token in localStorage or cookies (example: localStorage)
         localStorage.setItem('token', data.token);
-
-        // Redirect to dashboard/main
         router.push('/main');
       } else {
         setError(data.message || 'Login failed');
@@ -47,8 +63,11 @@ const LoginPage = () => {
     } catch (err) {
       setError('Something went wrong. Please try again.');
       console.error(err);
+    } finally {
+      setLoading(false);
     }
   };
+  
 
   return (
     <div className="flex items-center justify-center h-screen bg-gray-100">
@@ -79,10 +98,13 @@ const LoginPage = () => {
 
         <button
           type="submit"
-          className="w-full bg-secondary text-white p-2 rounded hover:bg-brown cursor-pointer transition duration-300"
-        >
-          Login
+          disabled={loading}
+          className={`w-full text-white p-2 rounded transition duration-300 ${
+            loading ? 'bg-gray-400 cursor-not-allowed' : 'bg-secondary hover:bg-brown cursor-pointer'
+          }`} >
+          {loading ? 'Logging in...' : 'Login'}
         </button>
+
       </form>
     </div>
   );
