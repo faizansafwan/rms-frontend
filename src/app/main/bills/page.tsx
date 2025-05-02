@@ -1,12 +1,27 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface Invoice {
   id: number;
   invoiceDate: string;
   total: number;
+  paid: number;
+  balance: number;
   customerName: string;
+  customerId: number;
+  invoiceProducts: {
+    productId: number;
+    productName: string;
+    quantity: number;
+    sellingPrice: number;
+    discount: number;
+    subTotal: number;
+  }[];
+  invoiceStocks: {
+    stockId: number;
+  }[];
 }
 
 export default function Bills() {
@@ -14,6 +29,8 @@ export default function Bills() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
     const fetchInvoices = async () => {
@@ -29,12 +46,7 @@ export default function Bills() {
         }
 
         const data = await response.json();
-        setInvoices(data.map((invoice: any) => ({
-          id: invoice.id,
-          invoiceDate: new Date(invoice.invoiceDate).toLocaleDateString(),
-          total: invoice.total,
-          customerName: invoice.customerName
-        })));
+        setInvoices(data);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An unknown error occurred');
       } finally {
@@ -49,6 +61,16 @@ export default function Bills() {
     invoice.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
     invoice.id.toString().includes(searchTerm)
   );
+
+  const openInvoiceModal = (invoice: Invoice) => {
+    setSelectedInvoice(invoice);
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setTimeout(() => setSelectedInvoice(null), 300); // Wait for animation to complete
+  };
 
   if (loading) {
     return (
@@ -112,15 +134,13 @@ export default function Bills() {
                   }}
                 >
                   <td className="py-2 text-center">I{invoice.id.toString().padStart(3, '0')}</td>
-                  <td className="py-2 text-center">{invoice.invoiceDate}</td>
+                  <td className="py-2 text-center">{new Date(invoice.invoiceDate).toLocaleDateString()}</td>
                   <td className="py-2 text-center">{invoice.total.toFixed(2)}</td>
                   <td className="py-2 text-center">{invoice.customerName}</td>
                   <td className="py-2 text-center">
                     <button
                       className="rounded bg-secondary transition ease-in-out duration-1000 p-2 hover:bg-black hover:text-white hover:scale-105"
-                      onClick={() => {
-                        console.log('View invoice:', invoice.id);
-                      }}
+                      onClick={() => openInvoiceModal(invoice)}
                     >
                       View
                     </button>
@@ -137,6 +157,126 @@ export default function Bills() {
           </tbody>
         </table>
       </div>
+
+      {/* Invoice Detail Modal */}
+      <AnimatePresence>
+        {isModalOpen && selectedInvoice && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-transparent bg-opacity-50"
+            onClick={closeModal}
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 50 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 50 }}
+              transition={{ type: 'spring', damping: 25 }}
+              className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Modal Header */}
+              <div className="bg-secondary text-brown p-4 rounded-t-lg">
+                <div className="flex justify-between items-center">
+                  <h2 className="text-2xl font-bold">
+                    Invoice #{selectedInvoice.id.toString().padStart(3, '0')}
+                  </h2>
+                  <button 
+                    onClick={closeModal}
+                    className="text-white hover:text-gray-200 text-2xl"
+                  >
+                    &times;
+                  </button>
+                </div>
+                <div className="flex justify-between mt-2">
+                  <p>Date: {new Date(selectedInvoice.invoiceDate).toLocaleDateString()}</p>
+                  <p>Customer: {selectedInvoice.customerName}</p>
+                </div>
+              </div>
+
+              {/* Modal Body */}
+              <div className="p-6">
+                {/* Products Table */}
+                <div className="mb-6">
+                  <h3 className="text-lg font-semibold mb-3 text-brown">Products</h3>
+                  <table className="w-full border-collapse">
+                    <thead>
+                      <tr className="bg-gray-100">
+                        <th className="p-2 text-left">Product</th>
+                        <th className="p-2 text-center">Qty</th>
+                        <th className="p-2 text-center">Price</th>
+                        <th className="p-2 text-center">Discount</th>
+                        <th className="p-2 text-center">Subtotal</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {selectedInvoice.invoiceProducts.map((product, index) => (
+                        <motion.tr
+                          key={product.productId}
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: index * 0.05 }}
+                          className="border-b hover:bg-gray-50"
+                        >
+                          <td className="p-2">{product.productName}</td>
+                          <td className="p-2 text-center">{product.quantity}</td>
+                          <td className="p-2 text-center">{product.sellingPrice.toFixed(2)}</td>
+                          <td className="p-2 text-center">{product.discount.toFixed(2)}</td>
+                          <td className="p-2 text-center">{product.subTotal.toFixed(2)}</td>
+                        </motion.tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Summary Section */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <h4 className="font-semibold text-brown mb-2">Payment Summary</h4>
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <span>Total:</span>
+                        <span>{selectedInvoice.total.toFixed(2)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Paid:</span>
+                        <span>{selectedInvoice.paid.toFixed(2)}</span>
+                      </div>
+                      <div className="flex justify-between font-bold">
+                        <span>Balance:</span>
+                        <span className={selectedInvoice.balance > 0 ? 'text-red-600' : 'text-green-600'}>
+                          {selectedInvoice.balance.toFixed(2)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  
+                </div>
+              </div>
+
+              {/* Modal Footer */}
+              <div className="bg-gray-100 p-4 rounded-b-lg flex justify-end space-x-3">
+                <button
+                  onClick={closeModal}
+                  className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400 transition"
+                >
+                  Close
+                </button>
+                <button
+                  className="px-4 py-2 bg-brown text-white rounded hover:bg-brown/90 cursor-pointer transition"
+                  onClick={() => {
+                    console.log('Print invoice:', selectedInvoice.id);
+                  }}
+                >
+                  Print Invoice
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <style jsx global>{`
         @keyframes fadeIn {
