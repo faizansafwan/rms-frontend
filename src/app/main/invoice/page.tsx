@@ -109,7 +109,7 @@ export default function NewInvoice() {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/Product/product-list`, {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/Product/product-stock`, {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`
           }
@@ -118,6 +118,7 @@ export default function NewInvoice() {
         if (response.ok) {
           const data = await response.json();
           setProductsList(data);
+          console.log(data);
         }
       } catch (error) {
         console.error('Error fetching products:', error);
@@ -242,7 +243,7 @@ export default function NewInvoice() {
   const selectProduct = (product: ProductItem) => {
     setNewProduct(prev => ({
       ...prev,
-      productId: product.id,
+      productId: product.productId,
       productName: product.productName,
       sellingPrice: product.sellingPrice
     }));
@@ -537,7 +538,7 @@ export default function NewInvoice() {
         </p>
       </div>
 
-      <div className="mx-10 my-5 overflow-x-auto">
+      <div className="mx-10 my-5 h-auto">
         <table className="w-full border-collapse">
           <thead className="border-b">
             <tr>
@@ -586,7 +587,7 @@ export default function NewInvoice() {
                       
                       if (inputValue.length > 0) {
                         const suggestions = productsList.filter(p => 
-                          p.id.toString().includes(inputValue) ||
+                          p.productId.toString().includes(inputValue) ||
                           p.productName.toLowerCase().includes(inputValue.toLowerCase())
                         );
                         setFilteredProducts(suggestions);
@@ -607,7 +608,7 @@ export default function NewInvoice() {
                     onFocus={() => {
                       if (newProduct.productId) {
                         const suggestions = productsList.filter(p => 
-                          p.id.toString().includes(newProduct.productId.toString()) ||
+                          p.productId.toString().includes(newProduct.productId.toString()) ||
                           p.productName.toLowerCase().includes(newProduct.productName.toLowerCase())
                         );
                         setFilteredProducts(suggestions);
@@ -625,14 +626,14 @@ export default function NewInvoice() {
                     >
                       {filteredProducts.map((product, index) => (
                         <li
-                          key={product.id}
+                          key={product.productId}
                           className={`p-2 hover:bg-gray-100 cursor-pointer ${
                             index === activeProductSuggestionIndex ? 'bg-gray-200' : ''
                           }`}
                           onClick={() => selectProduct(product)}
                           onMouseEnter={() => setActiveProductSuggestionIndex(index)}
                         >
-                          {product.id} - {product.productName} (${product.sellingPrice?.toFixed(2) || 0.00})
+                          {product.productId} - {product.productName} (${product.sellingPrice?.toFixed(2) || 0.00})
                         </li>
                       ))}
                     </ul>
@@ -720,7 +721,11 @@ export default function NewInvoice() {
             </div>
           )}
         </table>
+
+        
       </div>
+
+      
 
       <div className="mx-10">
         <div className="flex items-center justify-between p-1">

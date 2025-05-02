@@ -351,7 +351,7 @@ export default function AddStock(): JSX.Element {
                 }
             `}</style>
 
-            <div className="mx-10 my-5 overflow-x-auto">
+            <div className="mx-10 my-5 h-auto">
                 <table className="w-full border-collapse">
                     <thead className="border-b">
                         <tr>
