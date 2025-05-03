@@ -51,10 +51,8 @@ export const NavBar: FC = () => {
   return (
     <div className="text-[18px] h-full flex flex-col">
 
-      <div className="p-8 bg-gray-50 shadow-lg ">
-        
-      </div>
-      <nav className="flex-1 mt-2 px-4">
+     
+      <nav className="flex-1 mt-2 pt-3 px-4">
         <div>
           <ul>
             {/* Invoice Section */}
