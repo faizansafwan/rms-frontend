@@ -209,20 +209,20 @@ export const NavBar: FC = () => {
 
       {/* Logout Confirmation Modal */}
       {showLogoutModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed z-100 inset-0 bg-transparent bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded-lg max-w-sm w-full mx-4">
             <h3 className="text-lg font-bold mb-4">Confirm Logout</h3>
             <p className="mb-6">Are you sure you want to log out?</p>
             <div className="flex justify-end gap-3">
               <button 
                 onClick={() => setShowLogoutModal(false)}
-                className="px-4 py-2 border rounded hover:bg-gray-100 transition-colors"
+                className="px-4 py-2 border rounded hover:bg-gray-100 cursor-pointer transition-colors"
               >
                 Cancel
               </button>
               <button 
                 onClick={handleLogout}
-                className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
+                className="px-4 py-2 bg-secondary text-white rounded hover:opacity-75 cursor-pointer transition-colors"
               >
                 Log Out
               </button>
